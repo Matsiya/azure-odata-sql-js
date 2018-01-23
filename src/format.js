@@ -60,6 +60,7 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
 
         var takeClause = '',
             skipClause = '',
+            joinClause = '',
             whereClause = '',
             orderbyClause = '',
             limit = -1,
@@ -101,12 +102,17 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
             orderbyClause = ' ORDER BY ' + ordering;
         }
 
+        var join = this._formatJoin(query);
+        if (join.length > 0) {
+            joinClause = ' ' + join;
+        }
+
         var tableName = helpers.formatTableName(this.schemaName, query.table);
 
         if (this.flavor !== 'sqlite') {
-            formattedSql = util.format("SELECT %s%s FROM %s%s%s", takeClause, selection, tableName, whereClause, orderbyClause);
+            formattedSql = util.format("SELECT %s%s FROM %s%s%s%s", takeClause, selection, tableName, joinClause, whereClause, orderbyClause);
         } else {
-            formattedSql = util.format("SELECT %s FROM %s%s%s%s%s", selection, tableName, whereClause, orderbyClause, takeClause, skipClause);
+            formattedSql = util.format("SELECT %s FROM %s%s%s%s%s%s", selection, tableName, joinClause, whereClause, orderbyClause, takeClause, skipClause);
         }
 
         return formattedSql;
@@ -123,16 +129,18 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
 
         var filter = this._formatFilter(query, '(1 = 1)');
         var ordering = this._formatOrderBy(query, '[id]');
+        var join = this._formatJoin(query, '');
 
         // Plug all the pieces into the template to get the paging sql
         var tableName = helpers.formatTableName(this.schemaName, query.table);
         formattedSql = util.format(
             "SELECT %s " +
             "FROM %s " +
+            "%s " +
             "WHERE %s " +
             "ORDER BY %s " +
             "OFFSET %d ROWS FETCH NEXT %d ROWS ONLY",
-            selection, tableName, filter, ordering, query.skip,  query.take);
+            selection, tableName, join, filter, ordering, query.skip, query.take);
 
         return formattedSql;
     },
@@ -150,6 +158,18 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
             sql += ' WHERE ' + filter;
         }
         return sql;
+    },
+
+
+
+    _formatJoin: function (query, defaultJoin) {
+        if (!query.join) {
+            return defaultJoin || '';
+        }
+
+        // Need to have something more clean on the format
+
+        return query.join;
     },
 
     _formatOrderBy: function (query, defaultOrder) {
