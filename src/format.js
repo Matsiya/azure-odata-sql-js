@@ -65,7 +65,7 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
             orderbyClause = '',
             limit = -1,
             formattedSql,
-            selection = query.selections ? this._formatSelection(query.selections) : '*';
+            selection = query.selections ? this._formatSelection(query.selections) : (helpers.formatTableName(this.schema, query.table) + '.*');
 
         // set the top clause to be the minimumn of the top
         // and result limit values if either has been set.
@@ -75,6 +75,8 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
         } else if (resultLimit != Number.MAX_VALUE) {
             limit = query.resultLimit;
         }
+
+        console.log(this.flavor);
 
         if (this.flavor !== 'sqlite') {
             if (limit != -1) {
@@ -121,6 +123,7 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
     _formatPagedQuery: function (query) {
         var formattedSql, selection = '';
 
+
         if (query.selections) {
             selection = this._formatSelection(query.selections);
         } else {
@@ -153,7 +156,12 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
             filter = this._formatFilter(query);
         }
 
+        var join = this._formatJoin(query);
+
         var sql = 'SELECT COUNT(*) AS [count] FROM ' + table;
+        if (join && join.length > 0) {
+            sql += ' ' + join;
+        }
         if (filter) {
             sql += ' WHERE ' + filter;
         }
@@ -163,13 +171,34 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
 
 
     _formatJoin: function (query, defaultJoin) {
-        if (!query.join) {
+        if (!query.joining) {
             return defaultJoin || '';
         }
+        var join = '';
 
-        // Need to have something more clean on the format
+        // Split multiple joining
+        var joins = query.joining.split(',');
 
-        return query.join;
+        for (var i = 0; i < joins.length; ++i) {
+            // Split table, identifier of left part, identifier of right part
+            var parts = joins[i].split(':');
+
+            join += ' JOIN ' + helpers.formatTableName(this.schemaName, parts[0]);
+
+            for (var j = 0; j + 3 < parts.length && j < parts.length; j += 4) {
+                join += j === 0 ? ' ON ' : ' AND ';
+                join += helpers.formatTableName(this.schemaName, parts[j]) + '.' + parts[j + 1] + ' = ';
+
+                if (parts[j + 3].length > 0) {
+                    join += helpers.formatTableName(this.schemaName, parts[j + 2]) + '.' + parts[j + 3]
+                }
+                else {
+                    join += parts[j + 2];
+                }
+            }
+        }
+
+        return join;
     },
 
     _formatOrderBy: function (query, defaultOrder) {
@@ -249,6 +278,7 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
 
         this.statement.sql = '';
         filterExpr = this._finalizeExpression(filterExpr);
+
         this.visit(filterExpr);
 
         return this.statement.sql;
