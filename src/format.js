@@ -76,7 +76,6 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
             limit = query.resultLimit;
         }
 
-        console.log(this.flavor);
 
         if (this.flavor !== 'sqlite') {
             if (limit != -1) {
