@@ -65,7 +65,7 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
             orderbyClause = '',
             limit = -1,
             formattedSql,
-            selection = query.selections ? this._formatSelection(query.selections) : (helpers.formatTableName(this.schema, query.table) + '.*');
+            selection = query.selections ? this._formatSelection(query.selections) : (helpers.formatTableName(this.schemaName, query.table) + '.*');
 
         // set the top clause to be the minimumn of the top
         // and result limit values if either has been set.
