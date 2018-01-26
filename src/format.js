@@ -65,7 +65,7 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
             orderbyClause = '',
             limit = -1,
             formattedSql,
-            selection = query.selections ? this._formatSelection(query.selections) : (helpers.formatTableName(this.schemaName, query.table) + '.*');
+            selection = query.selections ? this._formatSelection(query.selections) : (helpers.formatTableName(this.schema, query.table) + '.*');
 
         // set the top clause to be the minimumn of the top
         // and result limit values if either has been set.
@@ -75,7 +75,6 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
         } else if (resultLimit != Number.MAX_VALUE) {
             limit = query.resultLimit;
         }
-
 
         if (this.flavor !== 'sqlite') {
             if (limit != -1) {
@@ -167,7 +166,24 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
         return sql;
     },
 
+    _extractAlias: function (tableContent) {
+        var tableName = '';
+        var tableAlias = '';
 
+
+        if (tableContent.indexOf(' ') > 0) {
+            tableName = tableContent.substring(0, tableContent.indexOf(' '));
+            tableAlias = ' ' + tableContent.substring(tableContent.indexOf(' ') + 1);
+        }
+        else {
+            tableName = tableContent;
+        }
+
+        return {
+            name: tableName,
+            alias: tableAlias
+        };
+    },
 
     _formatJoin: function (query, defaultJoin) {
         if (!query.joining) {
@@ -181,15 +197,18 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
         for (var i = 0; i < joins.length; ++i) {
             // Split table, identifier of left part, identifier of right part
             var parts = joins[i].split(':');
+            var tableData = this._extractAlias(parts[0]);
 
-            join += ' JOIN ' + helpers.formatTableName(this.schemaName, parts[0]);
 
-            for (var j = 0; j + 3 < parts.length && j < parts.length; j += 4) {
-                join += j === 0 ? ' ON ' : ' AND ';
-                join += helpers.formatTableName(this.schemaName, parts[j]) + '.' + parts[j + 1] + ' = ';
+
+            join += ' JOIN ' + helpers.formatTableName(this.schemaName, tableData.name) + tableData.alias;
+
+            for (var j = 1; j + 3 < parts.length && j < parts.length; j += 4) {
+                join += j === 1 ? ' ON ' : ' AND ';
+                join += parts[j] + '.' + parts[j + 1] + ' = ';
 
                 if (parts[j + 3].length > 0) {
-                    join += helpers.formatTableName(this.schemaName, parts[j + 2]) + '.' + parts[j + 3]
+                    join += parts[j + 2] + '.' + parts[j + 3]
                 }
                 else {
                     join += parts[j + 2];
