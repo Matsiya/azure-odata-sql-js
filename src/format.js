@@ -205,7 +205,15 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
 
             for (var j = 1; j + 3 < parts.length && j < parts.length; j += 4) {
                 join += j === 1 ? ' ON ' : ' AND ';
-                join += parts[j] + '.' + parts[j + 1] + ' = ';
+                join += parts[j] + '.' + parts[j + 1];
+
+                if (parts[j + 2].charAt(0) === '!') {
+                    join += ' != ';
+                    parts[j + 2] = parts[j + 2].substring(1);
+                }
+                else {
+                    join += ' = ';
+                }
 
                 if (parts[j + 3].length > 0) {
                     join += parts[j + 2] + '.' + parts[j + 3]
