@@ -176,17 +176,14 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
             tableContent = tableContent.substring(1);
         }
 
-        // Split elements
-        var split = tableContent.split(' ');
-
-        if (split.length === 2) {
-            tableName = split[0];
-            tableAlias = ' ' + split[1];
+        if (tableContent.toLowerCase().indexOf('left') === 0) {
+            leftJoin = true;
+            tableContent = tableContent.substring(5);
         }
-        else if (split.length === 3) {
-            leftJoin = split[0].toLowerCase() === 'left';
-            tableName = split[1];
-            tableAlias = ' ' + split[2];
+
+        if (tableContent.indexOf(' ') > 0) {
+            tableName = tableContent.substring(0, tableContent.indexOf(' '));
+            tableAlias = ' ' + tableContent.substring(tableContent.indexOf(' ') + 1);
         }
         else {
             tableName = tableContent;
