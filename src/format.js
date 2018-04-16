@@ -169,19 +169,34 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
     _extractAlias: function (tableContent) {
         var tableName = '';
         var tableAlias = '';
+        var leftJoin = false;
 
+        // Remove starting spaces
+        while (tableContent.charAt(0) === ' ') {
+            tableContent = tableContent.substring(1);
+        }
 
-        if (tableContent.indexOf(' ') > 0) {
-            tableName = tableContent.substring(0, tableContent.indexOf(' '));
-            tableAlias = ' ' + tableContent.substring(tableContent.indexOf(' ') + 1);
+        // Split elements
+        var split = tableContent.split(' ');
+
+        if (split.length === 2) {
+            tableName = split[0];
+            tableAlias = ' ' + split[1];
+        }
+        else if (split.length === 3) {
+            leftJoin = split[0].toLowerCase() === 'left';
+            tableName = split[1];
+            tableAlias = ' ' + split[2];
         }
         else {
             tableName = tableContent;
         }
 
+
         return {
             name: tableName,
-            alias: tableAlias
+            alias: tableAlias,
+            leftJoin: leftJoin
         };
     },
 
@@ -199,9 +214,7 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
             var parts = joins[i].split(':');
             var tableData = this._extractAlias(parts[0]);
 
-
-
-            join += ' JOIN ' + helpers.formatTableName(this.schemaName, tableData.name) + tableData.alias;
+            join += `${tableData.leftJoin ? 'LEFT' : ''} JOIN ${helpers.formatTableName(this.schemaName, tableData.name)} ${tableData.alias}`;
 
             for (var j = 1; j + 3 < parts.length && j < parts.length; j += 4) {
                 join += j === 1 ? ' ON ' : ' AND ';
@@ -216,7 +229,7 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
                 }
 
                 if (parts[j + 3].length > 0) {
-                    join += parts[j + 2] + '.' + parts[j + 3]
+                    join += parts[j + 2] + '.' + parts[j + 3];
                 }
                 else {
                     join += parts[j + 2];
