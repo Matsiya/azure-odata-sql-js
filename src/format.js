@@ -211,7 +211,7 @@ var SqlFormatter = types.deriveClass(ExpressionVisitor, ctor, {
             var parts = joins[i].split(':');
             var tableData = this._extractAlias(parts[0]);
 
-            join += `${tableData.leftJoin ? 'LEFT' : ''} JOIN ${helpers.formatTableName(this.schemaName, tableData.name)} ${tableData.alias}`;
+            join += `${tableData.leftJoin ? ' LEFT' : ''} JOIN ${helpers.formatTableName(this.schemaName, tableData.name)} ${tableData.alias}`;
 
             for (var j = 1; j + 3 < parts.length && j < parts.length; j += 4) {
                 join += j === 1 ? ' ON ' : ' AND ';
